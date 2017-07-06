@@ -1,3 +1,16 @@
+/*
+ArduinoCheckingError
+
+This sketch connects to a local logs website to check the system status.
+
+ Circuit:
+ * Ethernet shield attached to pins 10, 11, 12, 13
+ * Bicolor Led to pins 6, 7
+ * Buzzer to pins 2, 4
+  
+ created 26 Jun 2017
+*/
+
 #include <SPI.h>
 #include <Ethernet.h>
 
@@ -6,6 +19,7 @@
 
 #define BuzzerGND 2
 #define BuzzerVCC 4
+
 #define BeepCorto 100
 #define BeepLungo 200
 #define SPENTO 0
@@ -20,7 +34,7 @@ IPAddress ip(192, 168, 0, 177);
 
 EthernetClient client;
 
-boolean test;
+boolean newLivAllertaIncoming = false;
 byte prec;
 byte liv_allerta;
 
@@ -39,38 +53,40 @@ void setup() {
   pinMode(BuzzerVCC, OUTPUT);
   digitalWrite(BuzzerGND, 0);
 
-  test = false;
-
   Serial.begin(9600);
   while (!Serial) {  }
-
+  
   Serial.println("Ethernet Initializing...");
+  delay(1000); // give the ethernet module time to boot up
+  
   if (Ethernet.begin(mac) == 0) {
     Serial.println("Failed to configure Ethernet using DHCP");
-    Ethernet.begin(mac, ip);
+    Serial.println("Initializing using a fixed IP");
+    Ethernet.begin(mac, ip);   
   }
   Serial.println("Ethernet Initialized.");
+
+  // print the Ethernet board/shield's IP address:
+  Serial.print("My IP address: ");
+  Serial.println(Ethernet.localIP());
 }
 
 void loop() {
-  // if there's incoming data from the net connection.
-  // send it out the serial port.  This is for debugging
-  // purposes only:
   if (client.available())
   {
     liv_allerta = client.read();
-    if (test)
+    if (newLivAllertaIncoming)
     {
       liv_allerta -= 48;
       Serial.print("Livello di allerta: ");
       Serial.println(liv_allerta);
       AccendiLed();
-      test = false;
+      newLivAllertaIncoming = false;
       prec = liv_allerta;
     }
     if (liv_allerta == '#')
     {
-      test = true;
+      newLivAllertaIncoming = true;
     }
   }
 
